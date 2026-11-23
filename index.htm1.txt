@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>가톨릭대 성심교정 캠퍼스 로드뷰 (24개 지점)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css" />
+  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html { width: 100%; height: 100%; font-family: -apple-system, BlinkMacSystemFont, sans-serif; overflow: hidden; background: #111; }
+    #panorama { width: 100vw; height: 100vh; }
+
+    /* 우측 하단 스크롤형 미니맵 패널 */
+    #minimap {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 220px;
+      max-height: 260px;
+      overflow-y: auto;
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      z-index: 1000;
+    }
+    #minimap h4 {
+      position: sticky;
+      top: 0;
+      background: rgba(255, 255, 255, 0.95);
+      padding-bottom: 6px;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: #222;
+      border-bottom: 1px solid #eee;
+    }
+    .map-btn {
+      display: block;
+      width: 100%;
+      padding: 7px 9px;
+      margin-bottom: 5px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #fff;
+      text-align: left;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .map-btn.active {
+      background: #2563eb;
+      color: #fff;
+      border-color: #2563eb;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="panorama"></div>
+
+  <div id="minimap">
+    <h4>📍 정문 ➔ 김수환관 1층</h4>
+    <div id="btn-list"></div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // [비율 설정]
+    // - 현재 파노라마 사진(3.4:1 비율): haov: 360, vaov: 105 유지
+    // - 추후 360도 카메라 대여 촬영본(2:1 비율)으로 교체 시: vaov를 180으로 변경
+    // =========================================================================
+    const PANORAMA_CONFIG = {
+      haov: 360,
+      vaov: 105,
+      hfov: 95,
+      minPitch: -45,
+      maxPitch: 45
+    };
+
+    // 24개 지점 로컬 파일 경로 연결
+    const campusSpots = [
+      { title: '1. 정문 입구',          url: './images/IMG-6723.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '2. 정문 진입로 1',      url: './images/IMG-6724.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '3. 정문 진입로 2',      url: './images/IMG-6725.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '4. 정문 진입로 3',      url: './images/IMG-6726.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '5. 정문 앞 갈림길',     url: './images/IMG-6727.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '6. 김수환관 방면 1',    url: './images/IMG-6728.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '7. 김수환관 방면 2',    url: './images/IMG-6729.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '8. 김수환관 방면 3',    url: './images/IMG-6730.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '9. 김수환관 진입 광장', url: './images/IMG-6731.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '10. 김수환관 외곽 1',   url: './images/IMG-6732.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '11. 김수환관 외곽 2',   url: './images/IMG-6733.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '12. 김수환관 입구 앞',  url: './images/IMG-6734.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '13. 김수환관 1층 출입구',url: './images/IMG-6735.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '14. 김수환관 1층 로비 1',url: './images/IMG-6736.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '15. 김수환관 1층 로비 2',url: './images/IMG-6737.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '16. 김수환관 1층 복도 1',url: './images/IMG-6738.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '17. 김수환관 1층 복도 2',url: './images/IMG-6739.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '18. 김수환관 1층 복도 3',url: './images/IMG-6740.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '19. 김수환관 1층 복도 4',url: './images/IMG-6741.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '20. 김수환관 1층 중앙 1',url: './images/IMG-6742.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '21. 김수환관 1층 중앙 2',url: './images/IMG-6743.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '22. 김수환관 1층 안쪽 1',url: './images/IMG-6744.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '23. 김수환관 1층 안쪽 2',url: './images/IMG-6745.jpg', nextYaw: 0, prevYaw: 180 },
+      { title: '24. 김수환관 1층 종점',  url: './images/IMG-6746.jpg', nextYaw: 0, prevYaw: 180 }
+    ];
+
+    const scenesConfig = {};
+    const btnListEl = document.getElementById('btn-list');
+
+    campusSpots.forEach((spot, index) => {
+      const sceneId = `spot_${index}`;
+      const hotSpots = [];
+
+      if (index < campusSpots.length - 1) {
+        hotSpots.push({
+          pitch: -5,
+          yaw: spot.nextYaw,
+          type: 'scene',
+          text: `다음: ${campusSpots[index + 1].title}`,
+          sceneId: `spot_${index + 1}`
+        });
+      }
+
+      if (index > 0) {
+        hotSpots.push({
+          pitch: -5,
+          yaw: spot.prevYaw,
+          type: 'scene',
+          text: `이전: ${campusSpots[index - 1].title}`,
+          sceneId: `spot_${index - 1}`
+        });
+      }
+
+      scenesConfig[sceneId] = {
+        title: spot.title,
+        type: 'equirectangular',
+        panorama: spot.url,
+        haov: PANORAMA_CONFIG.haov,
+        vaov: PANORAMA_CONFIG.vaov,
+        hfov: PANORAMA_CONFIG.hfov,
+        minPitch: PANORAMA_CONFIG.minPitch,
+        maxPitch: PANORAMA_CONFIG.maxPitch,
+        vOffset: 0,
+        hotSpots: hotSpots
+      };
+
+      const btn = document.createElement('button');
+      btn.className = 'map-btn' + (index === 0 ? ' active' : '');
+      btn.dataset.scene = sceneId;
+      btn.textContent = spot.title;
+      btn.onclick = () => viewer.loadScene(sceneId);
+      btnListEl.appendChild(btn);
+    });
+
+    const viewer = pannellum.viewer('panorama', {
+      default: {
+        firstScene: 'spot_0',
+        sceneFadeDuration: 700,
+        autoLoad: true
+      },
+      scenes: scenesConfig
+    });
+
+    viewer.on('scenechange', function(sceneId) {
+      document.querySelectorAll('.map-btn').forEach(btn => {
+        const isActive = btn.dataset.scene === sceneId;
+        btn.classList.toggle('active', isActive);
+        if (isActive) btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
+    });
+  </script>
+</body>
+</html>

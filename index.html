@@ -34,7 +34,7 @@
       position: fixed;
       bottom: 20px;
       right: 20px;
-      width: 225px;
+      width: 230px;
       max-height: 260px;
       overflow-y: auto;
       background: rgba(255, 255, 255, 0.92);
@@ -76,7 +76,7 @@
 <body>
 
   <div id="dev-helper">
-    <div>현재 바라보는 정면 각도(targetYaw용): <span id="look-angle" class="highlight-yellow">yaw: 0, pitch: 0</span></div>
+    <div>현재 바라보는 정면 각도: <span id="look-angle" class="highlight-yellow">yaw: 0, pitch: 0</span></div>
     <div>마지막 클릭한 화살표 위치: <span id="click-angle" class="highlight-green">화면을 클릭해 보세요</span></div>
   </div>
 
@@ -88,228 +88,272 @@
   </div>
 
   <script>
-    const DEV_MODE = true;
+    // 각도 측정기 창 숨김 (추후 재촬영 시 true로 변경 가능)
+    const DEV_MODE = false;
 
+    // =========================================================================
+    // 실측 표 기준 전체 데이터 (6723 ~ 6745)
+    // - frontView: 전면 화살표 진입 시 및 목록 클릭 시 바라볼 정면 방향
+    // - backView: 후면 화살표로 되돌아올 때 바라볼 후면 진행 방향
+    // =========================================================================
     const campusNodes = {
       n6723: {
         title: '6723. 정문',
         url: './images/IMG-6723.jpg',
-        defaultYaw: 180,
+        frontView: { yaw: -132, pitch: 0 },
+        backView:  { yaw: -132, pitch: 0 },
         arrows: [
-          { yaw: 180, pitch: -5, target: 'n6724', text: '정문 2로 직진', targetYaw: 180 }
+          { yaw: -132, pitch: -4, target: 'n6724', text: '정문 2로 이동', dir: 'front' }
         ]
       },
       n6724: {
         title: '6724. 정문 2',
         url: './images/IMG-6724.jpg',
-        defaultYaw: 180,
+        frontView: { yaw: 163, pitch: 0 },
+        backView:  { yaw: 3, pitch: 0 },
         arrows: [
-          { yaw: 180, pitch: -5, target: 'n6725', text: '정문 3으로 직진', targetYaw: 180 },
-          { yaw: 0, pitch: -5, target: 'n6723', text: '정문으로 돌아가기', targetYaw: 0 }
+          { yaw: 163, pitch: -7, target: 'n6725', text: '정문 3으로 이동', dir: 'front' },
+          { yaw: 3, pitch: -5, target: 'n6723', text: '정문으로 돌아가기', dir: 'back' }
         ]
       },
       n6725: {
         title: '6725. 정문 3',
         url: './images/IMG-6725.jpg',
-        defaultYaw: 180,
+        frontView: { yaw: 152, pitch: 0 },
+        backView:  { yaw: 32, pitch: 0 },
         arrows: [
-          { yaw: 180, pitch: -5, target: 'n6726', text: '갈림길 전으로 직진', targetYaw: 180 },
-          { yaw: 0, pitch: -5, target: 'n6724', text: '정문 2로 돌아가기', targetYaw: 0 }
+          { yaw: 152, pitch: -21, target: 'n6726', text: '갈림길 전으로 이동', dir: 'front' },
+          { yaw: 32, pitch: -21, target: 'n6724', text: '정문 2로 돌아가기', dir: 'back' }
         ]
       },
       n6726: {
         title: '6726. 갈림길 전',
         url: './images/IMG-6726.jpg',
-        defaultYaw: 180,
+        frontView: { yaw: -92, pitch: 0 },
+        backView:  { yaw: 16, pitch: 0 },
         arrows: [
-          { yaw: -145, pitch: -5, target: 'n6728', text: '출입문 1(김수환관 내부)로', targetYaw: 180 },
-          { yaw: 135, pitch: -5, target: 'n6727', text: '외부 계단 / 상가 방면으로', targetYaw: 135 },
-          { yaw: 0, pitch: -5, target: 'n6725', text: '정문 3으로 돌아가기', targetYaw: 0 }
+          { yaw: -92, pitch: -12, target: 'n6728', text: '김수환관 문 내부로 이동', dir: 'front' },
+          { yaw: -145, pitch: -12, target: 'n6727', text: '외부 계단 앞 갈림길로', dir: 'front' },
+          { yaw: 16, pitch: -13, target: 'n6725', text: '정문 3으로 돌아가기', dir: 'back' }
         ]
       },
       n6727: {
         title: '6727. 외부 계단 앞',
         url: './images/IMG-6727.jpg',
-        defaultYaw: 180,
+        frontView: { yaw: -142, pitch: 0 },
+        backView:  { yaw: -7, pitch: 0 },
         arrows: [
-          { yaw: 165, pitch: 5, target: 'n6738', text: '외부 계단 올라가서 문2로', targetYaw: 180 },
-          { yaw: 90, pitch: -5, target: 'n6744', text: '매머드(카페) 방향으로', targetYaw: 90 },
-          { yaw: -45, pitch: -5, target: 'n6726', text: '갈림길 전으로 돌아가기', targetYaw: 0 }
+          { yaw: -142, pitch: -18, target: 'n6738', text: '김수환관 문2로 이동', dir: 'front' },
+          { yaw: -111, pitch: -22, target: 'n6744', text: '외부 계단 / 매머드 방면', dir: 'front' },
+          { yaw: -7, pitch: -27, target: 'n6726', text: '갈림길 전으로 돌아가기', dir: 'back' }
         ]
       },
       n6728: {
-        title: '6728. 김수환관 문 내부 (출입문 1)',
+        title: '6728. 김수환관 문 내부',
         url: './images/IMG-6728.jpg',
-        defaultYaw: 180,
+        frontView: { yaw: -138, pitch: 0 },
+        backView:  { yaw: 3, pitch: 0 },
         arrows: [
-          { yaw: 180, pitch: -5, target: 'n6730', text: '엘베 앞 방향으로 직진', targetYaw: 180 },
-          { yaw: -90, pitch: -5, target: 'n6729', text: '인커라 1층으로 들어가기', targetYaw: -90 },
-          { yaw: 0, pitch: -5, target: 'n6726', text: '출입문 1 밖(갈림길 전)으로', targetYaw: 0 }
+          { yaw: -138, pitch: -22, target: 'n6730', text: '엘베 앞으로 이동', dir: 'front' },
+          { yaw: -59, pitch: -18, target: 'n6729', text: '인커라 1층으로 들어가기', dir: 'front' },
+          { yaw: 3, pitch: -26, target: 'n6726', text: '갈림길 전으로 나가기', dir: 'back' }
         ]
       },
       n6729: {
         title: '6729. 인커라 1층',
         url: './images/IMG-6729.jpg',
-        defaultYaw: -90,
+        frontView: { yaw: -156, pitch: 0 },
+        backView:  { yaw: 24, pitch: 0 },
         arrows: [
-          { yaw: 90, pitch: -5, target: 'n6728', text: '출입문 1(김수환관 문 내부)로 나오기', targetYaw: 90 }
+          { yaw: 24, pitch: -23, target: 'n6728', text: '김수환관 문 내부로 나오기', dir: 'back' }
         ]
       },
       n6730: {
         title: '6730. 엘베 앞',
         url: './images/IMG-6730.jpg',
-        defaultYaw: 180,
+        frontView: { yaw: 81, pitch: 0 },
+        backView:  { yaw: 0, pitch: 0 },
         arrows: [
-          { yaw: 135, pitch: -5, target: 'n6731', text: '기부자 명패 앞으로', targetYaw: 120 },
-          { yaw: 0, pitch: -5, target: 'n6728', text: '출입문 1(문 내부)로 돌아가기', targetYaw: 0 }
+          { yaw: 81, pitch: -25, target: 'n6731', text: '기부자 명패 앞으로 이동', dir: 'front' },
+          { yaw: 0, pitch: -20, target: 'n6728', text: '김수환관 문 내부로 돌아가기', dir: 'back' }
         ]
       },
       n6731: {
         title: '6731. 기부자 명패 앞',
         url: './images/IMG-6731.jpg',
-        defaultYaw: 90,
+        frontView: { yaw: -60, pitch: 0 },
+        backView:  { yaw: 101, pitch: 0 },
         arrows: [
-          { yaw: 90, pitch: -5, target: 'n6732', text: '입학처 앞으로 이동', targetYaw: 90 },
-          { yaw: -45, pitch: -5, target: 'n6730', text: '엘베 앞으로 돌아가기', targetYaw: 0 }
+          { yaw: -60, pitch: -23, target: 'n6732', text: '입학처 앞으로 이동', dir: 'front' },
+          { yaw: 101, pitch: -25, target: 'n6730', text: '엘베 앞으로 돌아가기', dir: 'back' }
         ]
       },
       n6732: {
         title: '6732. 입학처 앞',
         url: './images/IMG-6732.jpg',
-        defaultYaw: 90,
+        frontView: { yaw: -70, pitch: 0 },
+        backView:  { yaw: 71, pitch: 0 },
         arrows: [
-          { yaw: 90, pitch: -5, target: 'n6733', text: '멘사 앞 갈림길로 이동', targetYaw: 90 },
-          { yaw: -90, pitch: -5, target: 'n6731', text: '기부자 명패 앞으로 돌아가기', targetYaw: -90 }
+          { yaw: -70, pitch: -22, target: 'n6733', text: '멘사 앞 갈림길로 이동', dir: 'front' },
+          { yaw: 71, pitch: -10, target: 'n6731', text: '기부자 명패 앞으로 돌아가기', dir: 'back' }
         ]
       },
       n6733: {
         title: '6733. 멘사 앞',
         url: './images/IMG-6733.jpg',
-        defaultYaw: 90,
+        frontView: { yaw: -110, pitch: 0 },
+        backView:  { yaw: 21, pitch: 0 },
         arrows: [
-          { yaw: 180, pitch: -5, target: 'n6735', text: '한국어교육원 앞으로', targetYaw: 180 },
-          { yaw: 90, pitch: -5, target: 'n6734', text: '멘사로 들어가기', targetYaw: 90 },
-          { yaw: -90, pitch: -5, target: 'n6732', text: '입학처 앞으로', targetYaw: -90 },
-          { yaw: -30, pitch: -5, target: 'n6738', text: '출입문 2(문2) 방면으로', targetYaw: 0 }
+          { yaw: -138, pitch: -20, target: 'n6734', text: '멘사로 들어가기', dir: 'front' },
+          { yaw: -77, pitch: -21, target: 'n6735', text: '한국어교육원 앞으로', dir: 'front' },
+          { yaw: 66, pitch: -21, target: 'n6738', text: '김수환관 문2로 이동', dir: 'front', arriveYaw: 146 },
+          { yaw: 21, pitch: -17, target: 'n6732', text: '입학처 앞으로 돌아가기', dir: 'back' }
         ]
       },
       n6734: {
         title: '6734. 멘사',
         url: './images/IMG-6734.jpg',
-        defaultYaw: 90,
+        frontView: { yaw: -54, pitch: 0 },
+        backView:  { yaw: 101, pitch: 0 },
         arrows: [
-          { yaw: -90, pitch: -5, target: 'n6733', text: '멘사 앞으로 나오기', targetYaw: -90 }
+          { yaw: 101, pitch: -22, target: 'n6733', text: '멘사 앞으로 나오기', dir: 'back' }
         ]
       },
       n6735: {
         title: '6735. 한국어교육원 앞',
         url: './images/IMG-6735.jpg',
-        defaultYaw: 180,
+        frontView: { yaw: -83, pitch: 0 },
+        backView:  { yaw: 59, pitch: 0 },
         arrows: [
-          { yaw: 135, pitch: -5, target: 'n6736', text: '체육관 앞으로 이동', targetYaw: 180 },
-          { yaw: 0, pitch: -5, target: 'n6733', text: '멘사 앞으로 돌아가기', targetYaw: 0 }
+          { yaw: -142, pitch: -19, target: 'n6736', text: '체육관 앞으로 이동', dir: 'front' },
+          { yaw: 59, pitch: -14, target: 'n6733', text: '멘사 앞으로 돌아가기', dir: 'back' }
         ]
       },
       n6736: {
         title: '6736. 체육관 앞',
         url: './images/IMG-6736.jpg',
-        defaultYaw: 180,
+        frontView: { yaw: 80, pitch: 0 },
+        backView:  { yaw: -64, pitch: 0 },
         arrows: [
-          { yaw: -165, pitch: -5, target: 'n6737', text: '체육관 입구로 들어가기', targetYaw: 180 },
-          { yaw: -45, pitch: -5, target: 'n6735', text: '한국어교육원 앞으로 돌아가기', targetYaw: 0 }
+          { yaw: 147, pitch: -4, target: 'n6737', text: '체육관으로 들어가기', dir: 'front' },
+          { yaw: -64, pitch: -16, target: 'n6735', text: '한국어교육원 앞으로 돌아가기', dir: 'back' }
         ]
       },
       n6737: {
         title: '6737. 체육관',
         url: './images/IMG-6737.jpg',
-        defaultYaw: 180,
+        frontView: { yaw: 18, pitch: 0 },
+        backView:  { yaw: -128, pitch: 0 },
         arrows: [
-          { yaw: 15, pitch: -5, target: 'n6736', text: '체육관 앞으로 나오기', targetYaw: 0 }
+          { yaw: -128, pitch: -20, target: 'n6736', text: '체육관 앞으로 나오기', dir: 'back' }
         ]
       },
       n6738: {
         title: '6738. 김수환관 문2',
         url: './images/IMG-6738.jpg',
-        defaultYaw: 90,
+        frontView: { yaw: -135, pitch: 0 },
+        backView:  { yaw: -19, pitch: 0 },
         arrows: [
-          { yaw: 90, pitch: -5, target: 'n6739', text: '복사실 방향으로 이동', targetYaw: 90 },
-          { yaw: 160, pitch: -5, target: 'n6733', text: '출입문 2 통과 (멘사 앞 방면)', targetYaw: 180 },
-          { yaw: -15, pitch: -10, target: 'n6727', text: '외부 계단 아래로 내려가기', targetYaw: 0 }
+          { yaw: -138, pitch: -15, target: 'n6733', text: '멘사 앞(출입문 2)으로', dir: 'front' },
+          { yaw: 146, pitch: -17, target: 'n6739', text: '복사실 방향으로 이동', dir: 'front' },
+          { yaw: -19, pitch: -14, target: 'n6727', text: '외부 계단 앞으로 나가기', dir: 'back' }
         ]
       },
       n6739: {
         title: '6739. 복사실',
         url: './images/IMG-6739.jpg',
-        defaultYaw: 90,
+        frontView: { yaw: -48, pitch: 0 },
+        backView:  { yaw: 121, pitch: 0 },
         arrows: [
-          { yaw: 90, pitch: -5, target: 'n6740', text: '포케얌 방향으로 이동', targetYaw: 90 },
-          { yaw: -90, pitch: -5, target: 'n6738', text: '김수환관 문2로 돌아가기', targetYaw: -90 }
+          { yaw: -50, pitch: -19, target: 'n6740', text: '포케얌 방향으로 이동', dir: 'front' },
+          { yaw: 121, pitch: -19, target: 'n6738', text: '김수환관 문2로 돌아가기', dir: 'back' }
         ]
       },
       n6740: {
         title: '6740. 포케얌',
         url: './images/IMG-6740.jpg',
-        defaultYaw: 90,
+        frontView: { yaw: -47, pitch: 0 },
+        backView:  { yaw: 123, pitch: 0 },
         arrows: [
-          { yaw: 0, pitch: -5, target: 'n6741', text: '빵집 방향으로 이동', targetYaw: 0 },
-          { yaw: -90, pitch: -5, target: 'n6739', text: '복사실로 돌아가기', targetYaw: -90 }
+          { yaw: -114, pitch: -17, target: 'n6741', text: '빵집 방향으로 이동', dir: 'front' },
+          { yaw: 123, pitch: -17, target: 'n6739', text: '복사실로 돌아가기', dir: 'back' }
         ]
       },
       n6741: {
         title: '6741. 빵집',
         url: './images/IMG-6741.jpg',
-        defaultYaw: 0,
+        frontView: { yaw: -58, pitch: 0 },
+        backView:  { yaw: 93, pitch: 0 },
         arrows: [
-          { yaw: 0, pitch: -5, target: 'n6742', text: '빵집 2(세탁소 갈림길)로', targetYaw: 0 },
-          { yaw: 180, pitch: -5, target: 'n6740', text: '포케얌으로 돌아가기', targetYaw: 180 }
+          { yaw: -62, pitch: -19, target: 'n6742', text: '빵집 2(갈림길)로 이동', dir: 'front' },
+          { yaw: 93, pitch: -27, target: 'n6740', text: '포케얌으로 돌아가기', dir: 'back' }
         ]
       },
       n6742: {
         title: '6742. 빵집 2',
         url: './images/IMG-6742.jpg',
-        defaultYaw: -90,
+        frontView: { yaw: 57, pitch: 0 },
+        backView:  { yaw: -68, pitch: 0 },
         arrows: [
-          { yaw: 180, pitch: -5, target: 'n6741', text: '빵집 방향으로 올라가기', targetYaw: 180 },
-          { yaw: -90, pitch: -5, target: 'n6743', text: '맘스터치 방향으로 이동', targetYaw: -90 },
-          { yaw: 90, pitch: -5, target: 'n6745', text: '세탁소 방향으로 이동', targetYaw: 90 }
+          { yaw: -7, pitch: -22, target: 'n6743', text: '맘스터치 방향으로 이동', dir: 'front' },
+          { yaw: -139, pitch: -22, target: 'n6745', text: '세탁소 방향으로 이동', dir: 'front' },
+          { yaw: -68, pitch: -22, target: 'n6741', text: '빵집으로 돌아가기', dir: 'back' }
         ]
       },
       n6743: {
         title: '6743. 맘스터치',
         url: './images/IMG-6743.jpg',
-        defaultYaw: -90,
+        frontView: { yaw: 6, pitch: 0 },
+        backView:  { yaw: -153, pitch: 0 },
         arrows: [
-          { yaw: -90, pitch: -5, target: 'n6744', text: '매머드(카페) 방향으로', targetYaw: -90 },
-          { yaw: 90, pitch: -5, target: 'n6742', text: '빵집 2 방향으로 돌아가기', targetYaw: 90 }
+          { yaw: 8, pitch: -26, target: 'n6744', text: '매머드 방향으로 이동', dir: 'front' },
+          { yaw: -153, pitch: -27, target: 'n6742', text: '빵집 2로 돌아가기', dir: 'back' }
         ]
       },
       n6744: {
         title: '6744. 매머드',
         url: './images/IMG-6744.jpg',
-        defaultYaw: -90,
+        frontView: { yaw: -18, pitch: 0 },
+        backView:  { yaw: 124, pitch: 0 },
         arrows: [
-          { yaw: -70, pitch: -5, target: 'n6727', text: '외부 계단 앞 갈림길로', targetYaw: -90 },
-          { yaw: 90, pitch: -5, target: 'n6743', text: '맘스터치 방향으로 돌아가기', targetYaw: 90 }
+          { yaw: -17, pitch: -22, target: 'n6727', text: '외부 계단 앞 갈림길로', dir: 'front', arriveYaw: -7 },
+          { yaw: 124, pitch: -27, target: 'n6743', text: '맘스터치로 돌아가기', dir: 'back' }
         ]
       },
       n6745: {
         title: '6745. 세탁소',
         url: './images/IMG-6745.jpg',
-        defaultYaw: 90,
+        frontView: { yaw: 154, pitch: 0 },
+        backView:  { yaw: 19, pitch: 0 },
         arrows: [
-          { yaw: -90, pitch: -5, target: 'n6742', text: '빵집 2 방향으로 되돌아가기', targetYaw: -90 }
+          { yaw: 19, pitch: -25, target: 'n6742', text: '빵집 2로 되돌아가기', dir: 'back' }
         ]
       }
     };
 
+    // =========================================================================
+    // [뷰어 엔진] 전진/후진 시선 방향 분기 처리
+    // =========================================================================
     const scenesConfig = {};
     const btnListEl = document.getElementById('btn-list');
     const nodeKeys = Object.keys(campusNodes);
 
     function smoothMoveTo(arrow) {
+      const destNode = campusNodes[arrow.target];
+      let targetYaw = 0;
+      let targetPitch = 0;
+
+      if (typeof arrow.arriveYaw === 'number') {
+        targetYaw = arrow.arriveYaw;
+      } else if (destNode) {
+        const viewObj = (arrow.dir === 'back') ? destNode.backView : destNode.frontView;
+        targetYaw = viewObj.yaw;
+        targetPitch = viewObj.pitch ?? 0;
+      }
+
       viewer.lookAt(arrow.pitch, arrow.yaw, 65, 350);
       setTimeout(() => {
-        viewer.loadScene(arrow.target, arrow.targetPitch ?? 0, arrow.targetYaw ?? 0, 95);
+        viewer.loadScene(arrow.target, targetPitch, targetYaw, 95);
       }, 320);
     }
 
@@ -322,7 +366,8 @@
         haov: 360,
         vaov: 105,
         hfov: 95,
-        yaw: node.defaultYaw ?? 0,
+        yaw: node.frontView.yaw,
+        pitch: node.frontView.pitch ?? 0,
         minPitch: -45,
         maxPitch: 45,
         hotSpots: node.arrows.map(arrow => ({
@@ -338,7 +383,7 @@
       btn.className = 'map-btn' + (idx === 0 ? ' active' : '');
       btn.dataset.scene = key;
       btn.textContent = node.title;
-      btn.onclick = () => viewer.loadScene(key, 0, node.defaultYaw ?? 0, 95);
+      btn.onclick = () => viewer.loadScene(key, node.frontView.pitch ?? 0, node.frontView.yaw, 95);
       btnListEl.appendChild(btn);
     });
 

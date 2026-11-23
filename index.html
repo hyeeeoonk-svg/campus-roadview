@@ -1,175 +1,427 @@
-<!DOCTYPE html>
-<html lang="ko">
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>가톨릭대 성심교정 캠퍼스 로드뷰 (24개 지점)</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css" />
-  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body, html { width: 100%; height: 100%; font-family: -apple-system, BlinkMacSystemFont, sans-serif; overflow: hidden; background: #111; }
-    #panorama { width: 100vw; height: 100vh; }
-
-    /* 우측 하단 스크롤형 미니맵 패널 */
-    #minimap {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 220px;
-      max-height: 260px;
-      overflow-y: auto;
-      background: rgba(255, 255, 255, 0.92);
-      border-radius: 12px;
-      padding: 10px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-      z-index: 1000;
-    }
-    #minimap h4 {
-      position: sticky;
-      top: 0;
-      background: rgba(255, 255, 255, 0.95);
-      padding-bottom: 6px;
-      margin-bottom: 6px;
-      font-size: 13px;
-      color: #222;
-      border-bottom: 1px solid #eee;
-    }
-    .map-btn {
-      display: block;
-      width: 100%;
-      padding: 7px 9px;
-      margin-bottom: 5px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      background: #fff;
-      text-align: left;
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .map-btn.active {
-      background: #2563eb;
-      color: #fff;
-      border-color: #2563eb;
-      font-weight: bold;
-    }
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2575.7">
+  <style type="text/css">
+    body {background-color: #0e0e0e}
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Neue'; -webkit-text-stroke: #000000}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Neue'; -webkit-text-stroke: #000000; min-height: 15.0px}
+    span.s1 {font-kerning: none}
   </style>
 </head>
 <body>
-
-  <div id="panorama"></div>
-
-  <div id="minimap">
-    <h4>📍 정문 ➔ 김수환관 1층</h4>
-    <div id="btn-list"></div>
-  </div>
-
-  <script>
-    // =========================================================================
-    // [비율 설정]
-    // - 현재 파노라마 사진(3.4:1 비율): haov: 360, vaov: 105 유지
-    // - 추후 360도 카메라 대여 촬영본(2:1 비율)으로 교체 시: vaov를 180으로 변경
-    // =========================================================================
-    const PANORAMA_CONFIG = {
-      haov: 360,
-      vaov: 105,
-      hfov: 95,
-      minPitch: -45,
-      maxPitch: 45
-    };
-
-    // 24개 지점 로컬 파일 경로 연결
-    const campusSpots = [
-      { title: '1. 정문 입구',          url: './images/IMG-6723.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '2. 정문 진입로 1',      url: './images/IMG-6724.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '3. 정문 진입로 2',      url: './images/IMG-6725.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '4. 정문 진입로 3',      url: './images/IMG-6726.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '5. 정문 앞 갈림길',     url: './images/IMG-6727.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '6. 김수환관 방면 1',    url: './images/IMG-6728.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '7. 김수환관 방면 2',    url: './images/IMG-6729.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '8. 김수환관 방면 3',    url: './images/IMG-6730.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '9. 김수환관 진입 광장', url: './images/IMG-6731.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '10. 김수환관 외곽 1',   url: './images/IMG-6732.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '11. 김수환관 외곽 2',   url: './images/IMG-6733.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '12. 김수환관 입구 앞',  url: './images/IMG-6734.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '13. 김수환관 1층 출입구',url: './images/IMG-6735.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '14. 김수환관 1층 로비 1',url: './images/IMG-6736.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '15. 김수환관 1층 로비 2',url: './images/IMG-6737.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '16. 김수환관 1층 복도 1',url: './images/IMG-6738.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '17. 김수환관 1층 복도 2',url: './images/IMG-6739.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '18. 김수환관 1층 복도 3',url: './images/IMG-6740.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '19. 김수환관 1층 복도 4',url: './images/IMG-6741.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '20. 김수환관 1층 중앙 1',url: './images/IMG-6742.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '21. 김수환관 1층 중앙 2',url: './images/IMG-6743.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '22. 김수환관 1층 안쪽 1',url: './images/IMG-6744.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '23. 김수환관 1층 안쪽 2',url: './images/IMG-6745.jpg', nextYaw: 0, prevYaw: 180 },
-      { title: '24. 김수환관 1층 종점',  url: './images/IMG-6746.jpg', nextYaw: 0, prevYaw: 180 }
-    ];
-
-    const scenesConfig = {};
-    const btnListEl = document.getElementById('btn-list');
-
-    campusSpots.forEach((spot, index) => {
-      const sceneId = `spot_${index}`;
-      const hotSpots = [];
-
-      if (index < campusSpots.length - 1) {
-        hotSpots.push({
-          pitch: -5,
-          yaw: spot.nextYaw,
-          type: 'scene',
-          text: `다음: ${campusSpots[index + 1].title}`,
-          sceneId: `spot_${index + 1}`
-        });
-      }
-
-      if (index > 0) {
-        hotSpots.push({
-          pitch: -5,
-          yaw: spot.prevYaw,
-          type: 'scene',
-          text: `이전: ${campusSpots[index - 1].title}`,
-          sceneId: `spot_${index - 1}`
-        });
-      }
-
-      scenesConfig[sceneId] = {
-        title: spot.title,
-        type: 'equirectangular',
-        panorama: spot.url,
-        haov: PANORAMA_CONFIG.haov,
-        vaov: PANORAMA_CONFIG.vaov,
-        hfov: PANORAMA_CONFIG.hfov,
-        minPitch: PANORAMA_CONFIG.minPitch,
-        maxPitch: PANORAMA_CONFIG.maxPitch,
-        vOffset: 0,
-        hotSpots: hotSpots
-      };
-
-      const btn = document.createElement('button');
-      btn.className = 'map-btn' + (index === 0 ? ' active' : '');
-      btn.dataset.scene = sceneId;
-      btn.textContent = spot.title;
-      btn.onclick = () => viewer.loadScene(sceneId);
-      btnListEl.appendChild(btn);
-    });
-
-    const viewer = pannellum.viewer('panorama', {
-      default: {
-        firstScene: 'spot_0',
-        sceneFadeDuration: 700,
-        autoLoad: true
-      },
-      scenes: scenesConfig
-    });
-
-    viewer.on('scenechange', function(sceneId) {
-      document.querySelectorAll('.map-btn').forEach(btn => {
-        const isActive = btn.dataset.scene === sceneId;
-        btn.classList.toggle('active', isActive);
-        if (isActive) btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      });
-    });
-  </script>
+<p class="p1"><span class="s1">&lt;!DOCTYPE html&gt;</span></p>
+<p class="p1"><span class="s1">&lt;html lang="ko"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;head&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;meta charset="UTF-8" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;title&gt;가톨릭대 성심교정 김수환관 1층 로드뷰&lt;/title&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"&gt;&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;style&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>* { box-sizing: border-box; margin: 0; padding: 0; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>body, html { width: 100%; height: 100%; font-family: -apple-system, BlinkMacSystemFont, sans-serif; overflow: hidden; background: #111; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>#panorama { width: 100vw; height: 100vh; }</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>/* [개발용 각도 측정기] 화살표 위치 조정 완료 후 DEV_MODE = false로 바꾸면 숨겨짐 */</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>#dev-helper {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>position: fixed;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>top: 14px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>left: 50%;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>transform: translateX(-50%);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: rgba(15, 23, 42, 0.88);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: #f8fafc;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding: 8px 16px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-radius: 12px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 12px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>line-height: 1.5;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>z-index: 1001;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>text-align: center;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>box-shadow: 0 4px 12px rgba(0,0,0,0.3);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>pointer-events: none;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.highlight-green { color: #4ade80; font-weight: bold; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.highlight-yellow { color: #fde047; font-weight: bold; }</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>/* 우측 하단 지점 이동 메뉴 */</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>#minimap {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>position: fixed;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>bottom: 20px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>right: 20px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>width: 225px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>max-height: 260px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>overflow-y: auto;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: rgba(255, 255, 255, 0.92);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-radius: 12px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>z-index: 1000;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>#minimap h4 {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>position: sticky;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>top: 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: rgba(255, 255, 255, 0.95);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding-bottom: 6px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin-bottom: 6px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 13px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: #1e293b;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-bottom: 1px solid #e2e8f0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.map-btn {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display: block;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>width: 100%;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding: 7px 9px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin-bottom: 5px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border: 1px solid #cbd5e1;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-radius: 6px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: #fff;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>text-align: left;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 12px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>cursor: pointer;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.map-btn.active {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: #2563eb;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: #fff;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-color: #2563eb;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-weight: bold;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/style&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/head&gt;</span></p>
+<p class="p1"><span class="s1">&lt;body&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div id="dev-helper"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div&gt;현재 바라보는 정면 각도(targetYaw용): &lt;span id="look-angle" class="highlight-yellow"&gt;yaw: 0, pitch: 0&lt;/span&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div&gt;마지막 클릭한 화살표 위치: &lt;span id="click-angle" class="highlight-green"&gt;화면을 클릭해 보세요&lt;/span&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div id="panorama"&gt;&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div id="minimap"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;h4&gt;📍 정문 ➔ 김수환관 1층&lt;/h4&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div id="btn-list"&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// 모든 화살표 각도 조정이 끝나면 false로 변경하세요.</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const DEV_MODE = true;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// =========================================================================</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// 손그림 약도 기반 23개 지점 전체 연결 데이터</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// =========================================================================</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const campusNodes = {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// --- [1] 정문 진입 구간 ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6723: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6723. 정문',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6723.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: 0,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 0, pitch: -5, target: 'n6724', text: '정문 2로 직진', targetYaw: 0 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6724: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6724. 정문 2',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6724.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: 0,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 0, pitch: -5, target: 'n6725', text: '정문 3으로 직진', targetYaw: 0 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 180, pitch: -5, target: 'n6723', text: '정문으로 돌아가기', targetYaw: 180 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6725: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6725. 정문 3',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6725.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: 0,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 0, pitch: -5, target: 'n6726', text: '갈림길 전으로 직진', targetYaw: 0 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 180, pitch: -5, target: 'n6724', text: '정문 2로 돌아가기', targetYaw: 180 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// ★ [갈림길 1] 출입문 1 방면(6728) / 외부 계단 방면(6727) / 정문 3(6725)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6726: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6726. 갈림길 전',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6726.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: 0,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 35, pitch: -5, target: 'n6728', text: '출입문 1(김수환관 내부)로', targetYaw: 0 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: -45, pitch: -5, target: 'n6727', text: '외부 계단 / 상가 방면으로', targetYaw: -45 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 180, pitch: -5, target: 'n6725', text: '정문 3으로 돌아가기', targetYaw: 180 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// ★ [갈림길 2] 외부 계단 위 문2(6738) / 매머드 방면(6744) / 갈림길 전(6726)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6727: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6727. 외부 계단 앞',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6727.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: 0,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: -15, pitch: 5, target: 'n6738', text: '외부 계단 올라가서 문2로', targetYaw: 0 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: -90, pitch: -5, target: 'n6744', text: '매머드(카페) 방향으로', targetYaw: -90 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 135, pitch: -5, target: 'n6726', text: '갈림길 전으로 돌아가기', targetYaw: 180 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// --- [2] 출입문 1 ~ 인커라 ~ 입학처 라인 ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6728: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6728. 김수환관 문 내부 (출입문 1)',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6728.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: 0,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 0, pitch: -5, target: 'n6730', text: '엘베 앞 방향으로 직진', targetYaw: 0 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 90, pitch: -5, target: 'n6729', text: '인커라 1층으로 들어가기', targetYaw: 90 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 180, pitch: -5, target: 'n6726', text: '출입문 1 밖(갈림길 전)으로', targetYaw: 180 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// [막힌 곳 1] 인커라 1층</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6729: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6729. 인커라 1층',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6729.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: 90,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: -90, pitch: -5, target: 'n6728', text: '출입문 1(김수환관 문 내부)로 나오기', targetYaw: -90 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6730: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6730. 엘베 앞',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6730.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: 0,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: -45, pitch: -5, target: 'n6731', text: '기부자 명패 앞으로', targetYaw: -60 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 180, pitch: -5, target: 'n6728', text: '출입문 1(문 내부)로 돌아가기', targetYaw: 180 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6731: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6731. 기부자 명패 앞',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6731.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: -90,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: -90, pitch: -5, target: 'n6732', text: '입학처 앞으로 이동', targetYaw: -90 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 135, pitch: -5, target: 'n6730', text: '엘베 앞으로 돌아가기', targetYaw: 180 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6732: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6732. 입학처 앞',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6732.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: -90,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: -90, pitch: -5, target: 'n6733', text: '멘사 앞 갈림길로 이동', targetYaw: -90 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 90, pitch: -5, target: 'n6731', text: '기부자 명패 앞으로 돌아가기', targetYaw: 90 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// --- [3] 멘사 앞 중앙 갈림길 ~ 멘사 / 한국어교육원 / 체육관 ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// ★ [갈림길 3] 입학처 앞(6732) / 멘사(6734) / 한국어교육원 앞(6735) / 출입문 2 방면(6738)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6733: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6733. 멘사 앞',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6733.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: -90,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 0, pitch: -5, target: 'n6735', text: '한국어교육원 앞으로', targetYaw: 0 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: -90, pitch: -5, target: 'n6734', text: '멘사로 들어가기', targetYaw: -90 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 90, pitch: -5, target: 'n6732', text: '입학처 앞으로', targetYaw: 90 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 150, pitch: -5, target: 'n6738', text: '출입문 2(문2) 방면으로', targetYaw: 180 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// [막힌 곳 2] 멘사</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6734: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6734. 멘사',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6734.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: -90,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 90, pitch: -5, target: 'n6733', text: '멘사 앞으로 나오기', targetYaw: 90 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6735: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6735. 한국어교육원 앞',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6735.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: 0,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: -45, pitch: -5, target: 'n6736', text: '체육관 앞으로 이동', targetYaw: 0 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 180, pitch: -5, target: 'n6733', text: '멘사 앞으로 돌아가기', targetYaw: 180 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6736: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6736. 체육관 앞',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6736.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: 0,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 15, pitch: -5, target: 'n6737', text: '체육관 입구로 들어가기', targetYaw: 0 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 135, pitch: -5, target: 'n6735', text: '한국어교육원 앞으로 돌아가기', targetYaw: 180 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// [막힌 곳 3] 체육관</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6737: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6737. 체육관',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6737.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: 0,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: -165, pitch: -5, target: 'n6736', text: '체육관 앞으로 나오기', targetYaw: 180 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// --- [4] 김수환관 문2 ~ 복사실 ~ 포케얌 ~ 빵집 라인 ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// ★ [갈림길 4] 복사실(6739) / 멘사 앞 출입문 2 연결(6733) / 외부 계단(6727)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6738: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6738. 김수환관 문2',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6738.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: -90,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: -90, pitch: -5, target: 'n6739', text: '복사실 방향으로 이동', targetYaw: -90 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: -20, pitch: -5, target: 'n6733', text: '출입문 2 통과 (멘사 앞 방면)', targetYaw: 0 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 165, pitch: -10, target: 'n6727', text: '외부 계단 아래로 내려가기', targetYaw: 180 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6739: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6739. 복사실',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6739.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: -90,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: -90, pitch: -5, target: 'n6740', text: '포케얌 방향으로 이동', targetYaw: -90 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 90, pitch: -5, target: 'n6738', text: '김수환관 문2로 돌아가기', targetYaw: 90 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6740: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6740. 포케얌',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6740.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: -90,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 180, pitch: -5, target: 'n6741', text: '빵집 방향으로 이동', targetYaw: 180 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 90, pitch: -5, target: 'n6739', text: '복사실로 돌아가기', targetYaw: 90 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6741: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6741. 빵집',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6741.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: 180,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 180, pitch: -5, target: 'n6742', text: '빵집 2(세탁소 갈림길)로', targetYaw: 180 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 0, pitch: -5, target: 'n6740', text: '포케얌으로 돌아가기', targetYaw: 0 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// --- [5] 외부 상가 라인 (매머드 ~ 맘스터치 ~ 빵집 2 ~ 세탁소) ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// ★ [갈림길 5] 빵집(6741) / 맘스터치(6743) / 세탁소(6745)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6742: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6742. 빵집 2',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6742.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: 90,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 0, pitch: -5, target: 'n6741', text: '빵집 방향으로 올라가기', targetYaw: 0 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 90, pitch: -5, target: 'n6743', text: '맘스터치 방향으로 이동', targetYaw: 90 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: -90, pitch: -5, target: 'n6745', text: '세탁소 방향으로 이동', targetYaw: -90 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6743: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6743. 맘스터치',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6743.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: 90,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 90, pitch: -5, target: 'n6744', text: '매머드(카페) 방향으로', targetYaw: 90 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: -90, pitch: -5, target: 'n6742', text: '빵집 2 방향으로 돌아가기', targetYaw: -90 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6744: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6744. 매머드',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6744.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: 90,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 110, pitch: -5, target: 'n6727', text: '외부 계단 앞 갈림길로', targetYaw: 90 },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: -90, pitch: -5, target: 'n6743', text: '맘스터치 방향으로 돌아가기', targetYaw: -90 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// [막힌 곳 4] 세탁소</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>n6745: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: '6745. 세탁소',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>url: './images/IMG-6745.jpg',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>defaultYaw: -90,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>arrows: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{ yaw: 90, pitch: -5, target: 'n6742', text: '빵집 2 방향으로 되돌아가기', targetYaw: 90 }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// =========================================================================</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// [뷰어 엔진] 부드러운 줌인 전환 및 각도 측정기 동작</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// =========================================================================</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const scenesConfig = {};</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const btnListEl = document.getElementById('btn-list');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const nodeKeys = Object.keys(campusNodes);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function smoothMoveTo(arrow) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>viewer.lookAt(arrow.pitch, arrow.yaw, 65, 350);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>setTimeout(() =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>viewer.loadScene(arrow.target, arrow.targetPitch ?? 0, arrow.targetYaw ?? 0, 95);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}, 320);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>nodeKeys.forEach((key, idx) =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const node = campusNodes[key];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>scenesConfig[key] = {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>title: node.title,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>type: 'equirectangular',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>panorama: node.url,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>haov: 360,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>vaov: 105,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>hfov: 95,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>yaw: node.defaultYaw ?? 0,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>minPitch: -45,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>maxPitch: 45,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>hotSpots: node.arrows.map(arrow =&gt; ({</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>pitch: arrow.pitch,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>yaw: arrow.yaw,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>type: 'scene',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>text: arrow.text,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>clickHandlerFunc: () =&gt; smoothMoveTo(arrow)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}))</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const btn = document.createElement('button');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>btn.className = 'map-btn' + (idx === 0 ? ' active' : '');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>btn.dataset.scene = key;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>btn.textContent = node.title;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>btn.onclick = () =&gt; viewer.loadScene(key, 0, node.defaultYaw ?? 0, 95);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>btnListEl.appendChild(btn);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const viewer = pannellum.viewer('panorama', {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>default: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>firstScene: nodeKeys[0],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>sceneFadeDuration: 800,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>autoLoad: true</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>scenes: scenesConfig</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>viewer.on('scenechange', (sceneId) =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>document.querySelectorAll('.map-btn').forEach(btn =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const isActive = btn.dataset.scene === sceneId;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>btn.classList.toggle('active', isActive);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (isActive) btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const devHelper = document.getElementById('dev-helper');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!DEV_MODE) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>devHelper.style.display = 'none';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>viewer.on('mousedown', (event) =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const coords = viewer.mouseEventToCoords(event);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (coords) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>document.getElementById('click-angle').textContent =</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>`yaw: ${Math.round(coords[1])}, pitch: ${Math.round(coords[0])}`;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>setInterval(() =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const curYaw = Math.round(viewer.getYaw());</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const curPitch = Math.round(viewer.getPitch());</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.getElementById('look-angle').textContent = `yaw: ${curYaw}, pitch: ${curPitch}`;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}, 200);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/body&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/html&gt;</span></p>
 </body>
 </html>

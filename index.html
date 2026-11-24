@@ -162,9 +162,9 @@
   <script>
     const DEV_MODE = false;
 
-    // 기본 시야각 (기존 95에서 + 버튼 2번 누른 확대 비율인 75로 설정)
-    const DEFAULT_HFOV = 75;
-    const ZOOM_IN_HFOV = 50;
+    // 기본 시야각 (기존 75에서 + 버튼 2번 더 누른 확대 비율인 55로 설정)
+    const DEFAULT_HFOV = 55;
+    const ZOOM_IN_HFOV = 35;
 
     const campusNodes = {
       n6723: {
@@ -433,6 +433,8 @@
         haov: 360,
         vaov: 105,
         hfov: DEFAULT_HFOV,
+        minHfov: 30,
+        maxHfov: 120,
         yaw: node.frontView.yaw,
         pitch: node.frontView.pitch ?? 0,
         minPitch: -45,
@@ -501,7 +503,6 @@
       if (e.target === toggleBtn) return;
       const pos = getPointerPos(e);
       const rect = minimapEl.getBoundingClientRect();
-      // bottom/right 기준 좌표를 top/left 기준으로 전환
       minimapEl.style.left = rect.left + 'px';
       minimapEl.style.top = rect.top + 'px';
       minimapEl.style.right = 'auto';

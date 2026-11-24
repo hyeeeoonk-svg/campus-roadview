@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>가톨릭대 성심교정 김수환관 1층 로드뷰</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css" />
   <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
@@ -30,28 +30,75 @@
     .highlight-green { color: #4ade80; font-weight: bold; }
     .highlight-yellow { color: #fde047; font-weight: bold; }
 
+    /* 위치 이동 및 크기 조절 가능한 지점 안내 창 */
     #minimap {
       position: fixed;
       bottom: 20px;
       right: 20px;
-      width: 230px;
-      max-height: 260px;
-      overflow-y: auto;
+      width: 220px;
+      height: 240px;
+      min-width: 150px;
+      min-height: 85px;
+      max-width: 90vw;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
       background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(6px);
       border-radius: 12px;
-      padding: 10px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
       z-index: 1000;
+      overflow: hidden;
     }
-    #minimap h4 {
-      position: sticky;
-      top: 0;
-      background: rgba(255, 255, 255, 0.95);
-      padding-bottom: 6px;
-      margin-bottom: 6px;
-      font-size: 13px;
-      color: #1e293b;
+    #minimap.minimized {
+      height: auto !important;
+      min-height: 0 !important;
+    }
+    #minimap.minimized #btn-list,
+    #minimap.minimized #resize-handle {
+      display: none;
+    }
+
+    /* 상단 드래그 이동 바 */
+    #minimap-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 10px;
+      background: rgba(241, 245, 249, 0.96);
       border-bottom: 1px solid #e2e8f0;
+      cursor: move;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      flex-shrink: 0;
+    }
+    #minimap-header h4 {
+      font-size: 12.5px;
+      color: #1e293b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #toggle-minimap {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #334155;
+      border-radius: 5px;
+      width: 22px;
+      height: 22px;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-left: 6px;
+    }
+
+    #btn-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 10px 16px 10px;
+      -webkit-overflow-scrolling: touch;
     }
     .map-btn {
       display: block;
@@ -63,6 +110,7 @@
       background: #fff;
       text-align: left;
       font-size: 12px;
+      color: #1e293b;
       cursor: pointer;
     }
     .map-btn.active {
@@ -70,6 +118,26 @@
       color: #fff;
       border-color: #2563eb;
       font-weight: bold;
+    }
+
+    /* 우측 하단 크기 조절 손잡이 */
+    #resize-handle {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 22px;
+      height: 22px;
+      cursor: nwse-resize;
+      touch-action: none;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+      padding: 3px;
+      color: #64748b;
+      font-size: 11px;
+      line-height: 1;
+      user-select: none;
+      -webkit-user-select: none;
     }
   </style>
 </head>
@@ -83,19 +151,21 @@
   <div id="panorama"></div>
 
   <div id="minimap">
-    <h4>📍 정문 ➔ 김수환관 1층</h4>
+    <div id="minimap-header" title="드래그하여 위치 이동">
+      <h4>📍 정문 ➔ 김수환관 1층</h4>
+      <button id="toggle-minimap" type="button" title="접기/펼치기">−</button>
+    </div>
     <div id="btn-list"></div>
+    <div id="resize-handle" title="드래그하여 크기 조절">◢</div>
   </div>
 
   <script>
-    // 각도 측정기 창 숨김 (추후 재촬영 시 true로 변경 가능)
     const DEV_MODE = false;
 
-    // =========================================================================
-    // 실측 표 기준 전체 데이터 (6723 ~ 6745)
-    // - frontView: 전면 화살표 진입 시 및 목록 클릭 시 바라볼 정면 방향
-    // - backView: 후면 화살표로 되돌아올 때 바라볼 후면 진행 방향
-    // =========================================================================
+    // 기본 시야각 (기존 95에서 + 버튼 2번 누른 확대 비율인 75로 설정)
+    const DEFAULT_HFOV = 75;
+    const ZOOM_IN_HFOV = 50;
+
     const campusNodes = {
       n6723: {
         title: '6723. 정문',
@@ -331,9 +401,6 @@
       }
     };
 
-    // =========================================================================
-    // [뷰어 엔진] 전진/후진 시선 방향 분기 처리
-    // =========================================================================
     const scenesConfig = {};
     const btnListEl = document.getElementById('btn-list');
     const nodeKeys = Object.keys(campusNodes);
@@ -351,9 +418,9 @@
         targetPitch = viewObj.pitch ?? 0;
       }
 
-      viewer.lookAt(arrow.pitch, arrow.yaw, 65, 350);
+      viewer.lookAt(arrow.pitch, arrow.yaw, ZOOM_IN_HFOV, 350);
       setTimeout(() => {
-        viewer.loadScene(arrow.target, targetPitch, targetYaw, 95);
+        viewer.loadScene(arrow.target, targetPitch, targetYaw, DEFAULT_HFOV);
       }, 320);
     }
 
@@ -365,7 +432,7 @@
         panorama: node.url,
         haov: 360,
         vaov: 105,
-        hfov: 95,
+        hfov: DEFAULT_HFOV,
         yaw: node.frontView.yaw,
         pitch: node.frontView.pitch ?? 0,
         minPitch: -45,
@@ -383,7 +450,7 @@
       btn.className = 'map-btn' + (idx === 0 ? ' active' : '');
       btn.dataset.scene = key;
       btn.textContent = node.title;
-      btn.onclick = () => viewer.loadScene(key, node.frontView.pitch ?? 0, node.frontView.yaw, 95);
+      btn.onclick = () => viewer.loadScene(key, node.frontView.pitch ?? 0, node.frontView.yaw, DEFAULT_HFOV);
       btnListEl.appendChild(btn);
     });
 
@@ -404,6 +471,122 @@
       });
     });
 
+    // =========================================================================
+    // [안내 창 위치 이동(드래그) 및 크기 조절(리사이즈) 컨트롤]
+    // =========================================================================
+    const minimapEl = document.getElementById('minimap');
+    const headerEl = document.getElementById('minimap-header');
+    const resizeEl = document.getElementById('resize-handle');
+    const toggleBtn = document.getElementById('toggle-minimap');
+
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isMin = minimapEl.classList.toggle('minimized');
+      toggleBtn.textContent = isMin ? '+' : '−';
+    });
+
+    function getPointerPos(e) {
+      if (e.touches && e.touches.length > 0) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+      return { x: e.clientX, y: e.clientY };
+    }
+
+    // 1. 드래그로 위치 이동
+    let isDragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+
+    function startDrag(e) {
+      if (e.target === toggleBtn) return;
+      const pos = getPointerPos(e);
+      const rect = minimapEl.getBoundingClientRect();
+      // bottom/right 기준 좌표를 top/left 기준으로 전환
+      minimapEl.style.left = rect.left + 'px';
+      minimapEl.style.top = rect.top + 'px';
+      minimapEl.style.right = 'auto';
+      minimapEl.style.bottom = 'auto';
+
+      dragOffsetX = pos.x - rect.left;
+      dragOffsetY = pos.y - rect.top;
+      isDragging = true;
+    }
+
+    function onDrag(e) {
+      if (!isDragging) return;
+      if (e.cancelable) e.preventDefault();
+      const pos = getPointerPos(e);
+      const rect = minimapEl.getBoundingClientRect();
+      const maxX = window.innerWidth - rect.width;
+      const maxY = window.innerHeight - rect.height;
+
+      const nextLeft = Math.min(Math.max(0, pos.x - dragOffsetX), Math.max(0, maxX));
+      const nextTop = Math.min(Math.max(0, pos.y - dragOffsetY), Math.max(0, maxY));
+      minimapEl.style.left = nextLeft + 'px';
+      minimapEl.style.top = nextTop + 'px';
+    }
+
+    function endDrag() {
+      isDragging = false;
+    }
+
+    headerEl.addEventListener('mousedown', startDrag);
+    headerEl.addEventListener('touchstart', startDrag, { passive: false });
+    window.addEventListener('mousemove', onDrag);
+    window.addEventListener('touchmove', onDrag, { passive: false });
+    window.addEventListener('mouseup', endDrag);
+    window.addEventListener('touchend', endDrag);
+
+    // 2. 모서리 드래그로 크기 조절
+    let isResizing = false;
+    let startX = 0;
+    let startY = 0;
+    let startW = 0;
+    let startH = 0;
+
+    function startResize(e) {
+      e.stopPropagation();
+      if (e.cancelable) e.preventDefault();
+      const pos = getPointerPos(e);
+      const rect = minimapEl.getBoundingClientRect();
+      minimapEl.style.left = rect.left + 'px';
+      minimapEl.style.top = rect.top + 'px';
+      minimapEl.style.right = 'auto';
+      minimapEl.style.bottom = 'auto';
+
+      startX = pos.x;
+      startY = pos.y;
+      startW = rect.width;
+      startH = rect.height;
+      isResizing = true;
+    }
+
+    function onResize(e) {
+      if (!isResizing) return;
+      if (e.cancelable) e.preventDefault();
+      const pos = getPointerPos(e);
+      const rect = minimapEl.getBoundingClientRect();
+      const maxW = window.innerWidth - rect.left - 10;
+      const maxH = window.innerHeight - rect.top - 10;
+
+      const newW = Math.min(Math.max(150, startW + (pos.x - startX)), maxW);
+      const newH = Math.min(Math.max(90, startH + (pos.y - startY)), maxH);
+      minimapEl.style.width = newW + 'px';
+      minimapEl.style.height = newH + 'px';
+    }
+
+    function endResize() {
+      isResizing = false;
+    }
+
+    resizeEl.addEventListener('mousedown', startResize);
+    resizeEl.addEventListener('touchstart', startResize, { passive: false });
+    window.addEventListener('mousemove', onResize);
+    window.addEventListener('touchmove', onResize, { passive: false });
+    window.addEventListener('mouseup', endResize);
+    window.addEventListener('touchend', endResize);
+
+    // 개발용 각도 측정기
     const devHelper = document.getElementById('dev-helper');
     if (!DEV_MODE) {
       devHelper.style.display = 'none';
